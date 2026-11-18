@@ -15,7 +15,7 @@ ONLYOFFICE no tiene el equivalente a *Ir a → Especial → Solo celdas visibles
 
 ## Instalación
 
-1. Descarga `solo-visibles.plugin` desde la sección **Releases** de este repositorio.
+1. Descarga `solo-visibles.plugin` desde la sección [**Releases**](../../releases) de este repositorio.
 2. Abre ONLYOFFICE Desktop Editors → pestaña **Plugins** → instala un plugin local y elige el archivo `.plugin`. El nombre exacto de la opción cambia según la versión.
 3. Abre una hoja de cálculo. El panel **Solo visibles** aparece en la barra lateral.
 
@@ -39,12 +39,12 @@ Para eliminar filas:
 1. Pulsa **Eliminar filas visibles**. El botón pide confirmación.
 2. Pulsa de nuevo en los 4 segundos siguientes para confirmar.
 
-## Advertencias
+## Consejos
 
-- **Prueba siempre en una copia del archivo**, sobre todo antes de eliminar filas. Después de ejecutar un plugin, el deshacer (`Ctrl+Z`) puede no funcionar.
-- Usa **Probar detección** primero para comprobar que cuenta bien las filas visibles y ocultas en tu versión.
-- El plugin usa la API pública de ONLYOFFICE, que no permite crear una selección real de "solo visibles". Por eso aplica el cambio fila por fila, en lugar de seleccionar las celdas.
-- Está probado con una versión concreta de ONLYOFFICE Desktop Editors. Algunos métodos de la API pueden comportarse distinto en otras versiones. Si algo falla, abre un *issue* con el mensaje que muestra el panel.
+- **Haz una copia del archivo antes de eliminar filas.** Después de ejecutar un plugin, el deshacer (`Ctrl+Z`) puede no funcionar.
+- Si tienes dudas sobre qué se va a modificar, usa **Probar detección**: muestra cuántas filas visibles y ocultas hay en la selección sin cambiar nada.
+- La API pública de ONLYOFFICE no permite crear una selección real de "solo visibles". Por eso el plugin aplica el cambio fila por fila, en lugar de seleccionar las celdas.
+- Si algo falla en tu versión de ONLYOFFICE, abre un *issue* con el mensaje que muestra el panel.
 
 ## Cómo funciona
 
@@ -56,7 +56,7 @@ Para eliminar filas:
 ## Estructura
 
 ```
-solo-visibles/
+soloVisiblesOnlyoffice/
 ├── config.json   # Metadatos y configuración del plugin
 ├── index.html    # Interfaz y lógica
 └── icon.png      # Icono
