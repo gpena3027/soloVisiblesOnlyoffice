@@ -1,0 +1,22 @@
+{
+  "name": "Solo visibles",
+  "nameLocale": { "es": "Solo visibles" },
+  "guid": "asc.{7c1a5b2e-3f4d-4b8a-9c61-2d5e8f0a1b34}",
+  "version": "1.0.0",
+  "variations": [
+    {
+      "description": "Aplica formato, valores o borrado de filas solo a las filas visibles (filtradas).",
+      "descriptionLocale": { "es": "Aplica formato, valores o borrado de filas solo a las filas visibles (filtradas)." },
+      "url": "index.html",
+      "icons": ["icon.png"],
+      "isViewer": false,
+      "EditorsSupport": ["cell"],
+      "isVisual": true,
+      "isModal": false,
+      "isInsideMode": true,
+      "initDataType": "none",
+      "initData": "",
+      "buttons": []
+    }
+  ]
+}

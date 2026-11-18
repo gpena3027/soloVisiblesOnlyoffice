@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Solo visibles</title>
+<script src="https://onlyoffice.github.io/sdkjs-plugins/v1/plugins.js"></script>
+<style>
+  body { font: 13px Arial, sans-serif; margin: 10px; color: #333; }
+  h4 { margin: 12px 0 6px; font-size: 13px; }
+  label { display: block; margin: 4px 0; }
+  input[type=text] { width: 100%; box-sizing: border-box; padding: 4px; }
+  button { width: 100%; padding: 6px; margin-top: 6px; cursor: pointer; }
+  button.danger { background: #c0392b; color: #fff; border: 0; }
+  #msg { margin-top: 10px; padding: 6px; background: #f3f3f3; min-height: 18px; }
+  .row { display: flex; gap: 6px; align-items: center; }
+</style>
+</head>
+<body>
+
+<h4>Valor en celdas visibles</h4>
+<input type="text" id="valor" placeholder="Valor a escribir">
+<button id="btnValor">Escribir valor</button>
+
+<h4>Formato en celdas visibles</h4>
+<label><input type="checkbox" id="chkBold"> Negrita</label>
+<div class="row"><input type="checkbox" id="chkFill"> Relleno <input type="color" id="colFill" value="#ffff00"></div>
+<div class="row"><input type="checkbox" id="chkFont"> Color de letra <input type="color" id="colFont" value="#ff0000"></div>
+<div class="row"><input type="checkbox" id="chkNum"> Formato numérico <input type="text" id="fmtNum" value="0.00"></div>
+<button id="btnFormato">Aplicar formato</button>
+
+<h4>Filas</h4>
+<button id="btnBorrar" class="danger">Eliminar filas visibles</button>
+<button id="btnProbar">Probar detección (no cambia nada)</button>
+
+<div id="msg"></div>
+
+<script>
+(function (window) {
+  function msg(t) { document.getElementById('msg').textContent = t; }
+  function hexToRgb(h) {
+    return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)];
+  }
+
+  // Un único comando que corre DENTRO del editor (no puede usar funciones externas).
+  // Las filas usan numeración de Excel (1 = primera fila).
+  function comando() {
+    var s = Asc.scope;
+    var ws = Api.GetActiveSheet();
+    var re = /^([A-Z]+)(\d*)(?::([A-Z]+)(\d*))?$/;
+    var addr = Api.GetSelection().GetAddress(false, false).split('!').pop().replace(/\$/g, '');
+    var usado = ws.GetUsedRange().GetAddress(false, false).split('!').pop().replace(/\$/g, '');
+    var m = re.exec(addr), mu = re.exec(usado);
+    var c1 = m[1], c2 = m[3] || m[1];
+    var r1 = m[2] ? parseInt(m[2], 10) : 1;
+    var r2 = m[4] ? parseInt(m[4], 10) : (m[2] ? r1 : parseInt(mu[4] || mu[2], 10));
+
+    var visibles = [], ocultas = 0, r;
+    for (r = r1; r <= r2; r++) {
+      if (ws.GetRange(r + ':' + r).GetHidden()) { ocultas++; } else { visibles.push(r); }
+    }
+
+    if (s.accion === 'probar') {
+      return 'Visibles: ' + visibles.length + ' | Ocultas: ' + ocultas + ' | Columnas: ' + c1 + '-' + c2;
+    }
+    if (s.accion === 'valor') {
+      visibles.forEach(function (r) { ws.GetRange(c1 + r + ':' + c2 + r).SetValue(s.valor); });
+      return 'Valor escrito en ' + visibles.length + ' filas visibles.';
+    }
+    if (s.accion === 'formato') {
+      visibles.forEach(function (r) {
+        var rng = ws.GetRange(c1 + r + ':' + c2 + r);
+        if (s.bold) rng.SetBold(true);
+        if (s.fill) rng.SetFillColor(Api.CreateColorFromRGB(s.fill[0], s.fill[1], s.fill[2]));
+        if (s.font) rng.SetFontColor(Api.CreateColorFromRGB(s.font[0], s.font[1], s.font[2]));
+        if (s.num) rng.SetNumberFormat(s.num);
+      });
+      return 'Formato aplicado a ' + visibles.length + ' filas visibles.';
+    }
+    if (s.accion === 'borrar') {
+      if (!visibles.length) return 'No hay filas visibles.';
+      function nFilas() {
+        var u = ws.GetUsedRange().GetAddress(false, false).split('!').pop().replace(/\$/g, '');
+        var x = re.exec(u);
+        return parseInt(x[4] || x[2], 10);
+      }
+      // Métodos a probar para borrar una fila completa (se usa el primero que reduzca las filas)
+      var metodos = [
+        function (r) { ws.GetRange(r + ':' + r).Delete('up'); },
+        function (r) { ws.GetRange('A' + r + ':XFD' + r).Delete('up'); },
+        function (r) { ws.GetRows(r).Delete('up'); }
+      ];
+      var elegido = -1, borradas = 0;
+      for (var i = visibles.length - 1; i >= 0; i--) {   // de abajo hacia arriba
+        var rr = visibles[i];
+        if (elegido < 0) {
+          var antes = nFilas();
+          for (var k = 0; k < metodos.length && elegido < 0; k++) {
+            try { metodos[k](rr); } catch (e) { continue; }
+            if (nFilas() < antes) elegido = k;
+          }
+          if (elegido < 0) return 'Ningún método de borrado funcionó (filas usadas: ' + antes + ').';
+        } else {
+          metodos[elegido](rr);
+        }
+        borradas++;
+      }
+      return 'Eliminadas ' + borradas + ' filas visibles (método ' + (elegido + 1) + ').';
+    }
+  }
+
+  function ejecutar(accion, cambia) {
+    window.Asc.scope.accion = accion;
+    window.Asc.plugin.callCommand(comando, false, cambia, function (res) { msg(res); });
+  }
+
+  window.Asc.plugin.init = function () {
+    var s = window.Asc.scope;
+    document.getElementById('btnProbar').onclick = function () { ejecutar('probar', false); };
+    document.getElementById('btnValor').onclick = function () {
+      s.valor = document.getElementById('valor').value;
+      ejecutar('valor', true);
+    };
+    document.getElementById('btnFormato').onclick = function () {
+      s.bold = document.getElementById('chkBold').checked;
+      s.fill = document.getElementById('chkFill').checked ? hexToRgb(document.getElementById('colFill').value) : null;
+      s.font = document.getElementById('chkFont').checked ? hexToRgb(document.getElementById('colFont').value) : null;
+      s.num = document.getElementById('chkNum').checked ? document.getElementById('fmtNum').value : null;
+      ejecutar('formato', true);
+    };
+    var btnB = document.getElementById('btnBorrar'), armado = false, timer = null;
+    btnB.onclick = function () {
+      if (!armado) {                       // 1er clic: pedir confirmación (confirm() no funciona en plugins)
+        armado = true;
+        btnB.textContent = 'Clic otra vez para CONFIRMAR';
+        msg('Se eliminarán las filas visibles de la selección.');
+        timer = setTimeout(function () { armado = false; btnB.textContent = 'Eliminar filas visibles'; }, 4000);
+        return;
+      }
+      clearTimeout(timer);
+      armado = false;
+      btnB.textContent = 'Eliminar filas visibles';
+      msg('Eliminando...');
+      ejecutar('borrar', true);
+    };
+  };
+})(window);
+</script>
+</body>
+</html>
